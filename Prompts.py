@@ -1,12 +1,47 @@
 prompts = {
-    "sentimento": "{text} Analise o sentimento do texto a seguir, considerando todas as nuances possíveis",
+    "sentimento":'''
+                "realize uma análise profunda e detalhada." \
+                "do sentimento do cliente e do atendente expresso no texto delimitado por {}, "\
+                "classifique o sentimento de cada um como: 'positivo', 'negativo' ou 'neutro'. "\
+                "Identifique e liste os sentimentos específicos presentes, "\
+                "em sua forma mais simples e direta (palavra primitiva)" \
+                "tanto explícitos quanto implícitos, e avalie a intensidade de cada sentimento somados dentro de uma escala total de 0 (zero) a 100 (cem) em porcentagem(%). "\
+                "Indique quais palavras-chave na sentença contribuíram " \
+                "para os sentimentos identificados. "\
+                "Além disso, sugira possíveis razões para esses sentimentos "\
+                "com base na conversa. Por fim, explique como você chegou " \
+                "a essas conclusões. Retorne todas essas informações em português do Brasil " \
+                "no seguinte formato de um objeto JSON respeitando a estrutura para cliente e atendente:: " \
+                "{" \
+                    "\"role_cliente\": \"cliente\"," \
+                    "\"classe_cliente\": {\"classificação\"}," \
+                    "\"sentimentos_cliente\": {\"sentimento\": intensidade}," \
+                    "\"contribuicoes_cliente\": {\"palavra/frase\": \"sentimento associado\"}," \
+                    "\"razoes_possiveis_cliente\": [\"string\"]," \
+                    "\"explicacao_modelo_cliente\": \"string\"," \
+                    "\"role_atendente\": \"atendente\"," \
+                    "\"classe_atendente\": {\"classificação\"}," \
+                    "\"sentimentos_atendente\": {\"sentimento\": intensidade}," \
+                    "\"contribuicoes_atendente\": {\"palavra/frase\": \"sentimento associado\"}," \
+                    "\"razoes_possiveis_atendente\": [\"string\"]," \
+                    "\"explicacao_modelo_atendente\": \"string\"" \
+                "}"
+    ''',
+
     "resumo": """
-                Você é um analista senior da empresa Leste telecom sua função é analisar transcrições e interações com base nos critérios da empresa
+                Você é um analista sênior da empresa Leste telecom, sua função é analisar transcrições e interações com base nos critérios fornecidos abaixo:
 
-                {text} faça um breve resumo da interação identificando os pontos abaixo:
+                {text} Faça um breve resumo da conversa identificando os seguintes pontos:
 
-                Nome do funcionário que atendeu, nome do cliente que entrou em contato, motivo do contato, o que foi realizado pelo atendente, e analise se o atendimento foi finalizado por falta de interação ou o cliente aguarda alguma solução
-            """,   
+                Quantos atendentes atenderam o cliente, nome do cliente que entrou em contato, motivo do contato, o que foi realizado pelo atendente, e analise se o atendimento foi finalizado por falta de interação ou o cliente aguarda alguma solução
+                
+                Caso o problema do cliente não tenha sido resolvido no atendimento ou faltou alguma informação: ofereça um retorno de contato. 
+                se na interação foi agendada uma visita técnica ofereça um retorno de contato após a data da visita, para verificar se o problema foi rosolvido. 
+                
+
+                Sempre Responda em Português do Brasil "pt-br"
+            """,
+
     "aprovar": """
                     Com base na transcrição, responda as perguntas abaixo e inclua na resposta a pergunta original, a resposta e a justificativa com trechos específicos do texto: 
 
@@ -38,6 +73,8 @@ prompts = {
 
                     Responda SEMPRE em português do Brasil "pt-br".
     """,
-    "motivo": "{text} identifique no texto o motivo do contato e se o problema apresesntado foi resolvido na interação",
+    
+    "motivo": "{text} identifique no texto o motivo do contato do cliente e se o problema apresentado foi resolvido na interação. Sempre Responda em Português do Brasil 'pt-br' ",
+    
     "motivo3": "Identify and list the main keywords in the following text: {text}"
 }
