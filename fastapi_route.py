@@ -7,6 +7,7 @@ import datetime
 import logging
 import os
 from fpdf import FPDF
+import datetime
 
 import speech_recognition as sr
 from pydub import AudioSegment
@@ -59,6 +60,7 @@ class AudioData(BaseModel):
 class KeywordData(BaseModel):   
     keyword: Optional[str] = None
     text: Optional[str] = None
+    audio_id: Optional[int] = None
 
 class TranscriptionResponse(BaseModel):
     filename: str
@@ -120,11 +122,11 @@ def run_gemini(prompt, text):
 
 def validate_input(keyword, text):
     if not keyword or keyword not in prompts:
-        logger.error("Invalid keyword provided.")
-        return False, "Invalid keyword. Please provide a valid keyword."
+        logger.error("Teste Ia_leste: Invalid keyword provided.")
+        return False, "Teste Ia_leste: Invalid keyword. Please provide a valid keyword."
     if not text or len(text.strip()) == 0:
-        logger.error("Empty or invalid text provided.")
-        return False, "Text cannot be empty. Please provide valid text."
+        logger.error("Teste Ia_leste: Empty or invalid text provided.")
+        return False, "Teste Ia_leste: Text cannot be empty. Please provide valid text."
     return True, ""
 
 def run_with_fallback(prompt, text):
@@ -139,6 +141,10 @@ def run_with_fallback(prompt, text):
 def convert_milliseconds(ms):
     return str(datetime.timedelta(milliseconds=ms)).split('.')[0]
 
+def log_request_data(id: int, timestamp: str):
+    log_filename = 'process_requests.log'
+    with open(log_filename, 'a') as log_file:
+        log_file.write(f"ID: {id}, Timestamp: {timestamp}\n")
 
 
 
@@ -309,10 +315,14 @@ async def analisar_transcricao2(transcricoes: List[str] = Form(...)):
 async def process_request(data: KeywordData):
     keyword = data.keyword
     text = data.text
+    audio_id = data.audio_id
 
     is_valid, error_message = validate_input(keyword, text)
     if not is_valid:
         raise HTTPException(status_code=400, detail=error_message)
+
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    log_request_data(data.audio_id, timestamp)
 
     if keyword in prompts:
         if keyword == "sentimento":
@@ -339,7 +349,8 @@ async def process_request(data: KeywordData):
         result = run_with_fallback(prompt, text)
     else:
         logger.info("Palavra-chave não reconhecida, usando tratamento padrão.")
-        result = run_gemini(f"Processe o seguinte texto: {text}", text)
+        #result = run_gemini(f"Processe o seguinte texto: {text}", text)
+        result = "Teste Ia_leste: Falha na requisição."
 
     return {"result": result}
 
