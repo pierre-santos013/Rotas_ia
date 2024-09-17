@@ -3,7 +3,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
 from typing import List, Dict, Optional
 from werkzeug.utils import secure_filename
-
+import datetime
 import logging
 import os
 from fpdf import FPDF
@@ -129,10 +129,15 @@ def validate_input(keyword, text):
 
 def run_with_fallback(prompt, text):
     result = run_groq(prompt, text)
+
     if not result or len(result.strip()) == 0:
         logger.warning("Erro ao utilizar a Groq, utilizando o Gemini.")
         result = run_gemini(prompt, text)
+        
     return result
+
+def convert_milliseconds(ms):
+    return str(datetime.timedelta(milliseconds=ms)).split('.')[0]
 
 
 
@@ -194,7 +199,7 @@ async def stt_audio_google(audio: List[UploadFile] = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/transcribe_a", response_model=List[TranscriptionResponse])
+@app.post("/transcribeaudio", response_model=List[TranscriptionResponse])
 async def stt_audio_assembly(audio: List[UploadFile] = File(...)):
     '''
     rota recebe um paylod form/data {audio},
@@ -218,19 +223,27 @@ async def stt_audio_assembly(audio: List[UploadFile] = File(...)):
                     filepath = convert_to_flac(filepath)
 
                 try:
-                    config = aai.TranscriptionConfig(speech_model=aai.SpeechModel.best, language_code="pt")
+                    #config = aai.TranscriptionConfig(speech_model=aai.SpeechModel.best, language_code="pt")
+                    config = aai.TranscriptionConfig(speech_model=aai.SpeechModel.best, speaker_labels=True, language_code="pt")
                     transcriber = aai.Transcriber()
-
-                        # Transcreve o áudio
                     with open(filepath, 'rb') as audio_file:
                         transcript = transcriber.transcribe(audio_file, config=config)
+                        if transcript.status == aai.TranscriptStatus.error:
+                            response = f'Arquivo não contém áudio '
+                        else:
+                            response = ""
+                            for utterance in transcript.utterances:
+                                #time_str = convert_milliseconds(utterance["start"])
+                                time_str = convert_milliseconds(utterance.start)
 
+                                response += f"[{time_str}]- Speaker {utterance.speaker}: {utterance.text}\n\n"    
+                        
                         # Formata a transcrição
-                    transcricao_texto = transcript.text
+                    #transcricao_texto = transcript.text
 
                 except Exception as e:
                     #return jsonify({"error": f"Falha ao transcrever com ambos os serviços: {str(e)}, "}), 500
-                    raise HTTPException(status_code=400, detail=f"Falha ao transcrever com ambos os serviços: {str(e)}")
+                    raise HTTPException(detail=f"Arquivo não contem audio : ")
 
                 transcricao_dir = 'transcricoes'
                 os.makedirs(transcricao_dir, exist_ok=True)
@@ -240,11 +253,11 @@ async def stt_audio_assembly(audio: List[UploadFile] = File(...)):
                 pdf = FPDF()
                 pdf.add_page()
                 pdf.set_font("Arial", size=12)
-                for line in transcricao_texto.split("\n"):
+                for line in response.split("\n"):
                     pdf.multi_cell(0, 10, line)
                 pdf.output(transcricao_path)
 
-                transcricoes.append({"filename": filename, "transcription": transcricao_texto, "file_path": transcricao_path})
+                transcricoes.append({"filename": filename, "transcription": response, "file_path": transcricao_path})
 
             else:
                 raise HTTPException(status_code=400, detail=f"Tipo de arquivo inválido para o arquivo {file.filename}")
@@ -399,6 +412,8 @@ async def transc_audio_msql(audio_id: int):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
 
 @app.post("/process2", response_model=Process2Response)
 async def process2_request(data: SentimentoRequest):
